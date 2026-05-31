@@ -1,0 +1,15 @@
+# On dependencies update, run pip-compile to regenerate requirements.txt
+-e .
+
+# app requirements
+jinja2
+openpyxl
+pyyaml
+
+# dev requirements
+pip-tools
+pytest
+pytest-cov
+black
+ruff
+mypy

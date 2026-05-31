@@ -1,0 +1,106 @@
+{{ "═" * 70 }}
+  IRPF {{ tax_year }} — GANANCIAS Y PÉRDIDAS PATRIMONIALES
+  Acciones y ETFs cotizados en mercados organizados
+{{ "═" * 70 }}
+  Generado: {{ today }}
+  Ejercicio fiscal: {{ tax_year }}
+  Normativa: Art. 33, 35 y 37.2 Ley 35/2006 IRPF
+
+{{ "─" * 70 }}
+  CÓMO INTRODUCIR EN RENTA WEB (renta.agenciatributaria.gob.es)
+{{ "─" * 70 }}
+  1. Accede a tu borrador / declaración.
+  2. Navega a:
+       Apdo. C2 › Ganancias y pérdidas patrimoniales derivadas
+       de transmisiones de otros elementos patrimoniales
+       › Acciones y derechos cotizados (acciones individuales)
+       › Transmisiones de IIC cotizadas (ETFs/fondos cotizados)
+  3. Para cada operación abajo, pulsa 'Añadir' e introduce:
+       • Descripción del elemento
+       • Fecha y valor de adquisición  (gastos ya incluidos)
+       • Fecha y valor de transmisión  (gastos ya deducidos)
+     Renta Web calcula el resultado automáticamente.
+  4. Verifica que el resumen final coincide con los totales de
+     este informe (casillas {{ casilla_gains }} y {{ casilla_losses }}).
+
+{{ "─" * 70 }}
+  OPERACIONES A DECLARAR
+{{ "─" * 70 }}
+{% if not entries %}
+  (No hay transmisiones en este ejercicio)
+
+{% else %}
+{% for e in entries %}
+  [{{ loop.index }}] {{ e.product }}
+      ISIN               : {{ e.isin }}
+      Descripción        : {{ e.product }} ({{ e.isin }})
+      Fecha adquisición  : {{ e.acquisition_date | date_fmt }}
+      Valor adquisición  : {{ e.acquisition_value | fmt }} €
+      Fecha transmisión  : {{ e.transfer_date | date_fmt }}
+      Valor transmisión  : {{ e.transfer_value | fmt }} €
+      Resultado          : {{ "+" if e.reported_gain >= 0 else "" }}{{ e.reported_gain | fmt }} € ({{ "GANANCIA" if e.reported_gain >= 0 else "PÉRDIDA" }})
+{% if e.wash_sale_deferred > 0 %}
+      ⚠ Pérdida diferida : {{ e.wash_sale_deferred | fmt }} € (regla antiaplicación — NO declarar como pérdida este ejercicio)
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if wash_sale_records %}
+{{ "─" * 70 }}
+  PÉRDIDAS DIFERIDAS — REGLA ANTIAPLICACIÓN (Art. 33.5.d LIRPF)
+{{ "─" * 70 }}
+  Las siguientes pérdidas NO se integran en este ejercicio.
+  Se imputarán cuando se vendan los valores recomprados.
+  Anótalas para declaraciones futuras.
+
+{% for r in wash_sale_records %}
+  • {{ r.loss_event.product }} ({{ r.loss_event.isin }})
+    Venta con pérdida : {{ r.loss_event.transfer_date | date_fmt }}
+    Recompra activante: {{ r.replacement_purchase_date | date_fmt if r.replacement_purchase_date else "antes de la venta" }}
+    Pérdida diferida  : {{ r.deferred_loss | fmt }} €
+    Plazo reactivación: {{ r.reactivation_deadline | date_fmt }}
+
+{% endfor %}
+{% endif %}
+{{ "═" * 70 }}
+  RESUMEN DEL EJERCICIO
+{{ "═" * 70 }}
+  Ganancias totales   : +{{ summary.total_gains | fmt }} €
+  Pérdidas totales    :  {{ ("-" + (summary.total_losses | fmt)) if summary.total_losses > 0 else "0,00" }} €
+  Resultado neto      : {{ "+" if summary.net_result >= 0 else "" }}{{ summary.net_result | fmt }} €
+{% if summary.total_deferred > 0 %}
+  Pérdidas diferidas  :  -{{ summary.total_deferred | fmt }} € (excluidas del neto)
+{% endif %}
+
+  INTEGRACIÓN EN LA DECLARACIÓN (base imponible del ahorro):
+{% if summary.net_result >= 0 %}
+    Casilla {{ casilla_gains }} (saldo positivo): +{{ summary.net_result | fmt }} €
+    Casilla {{ casilla_losses }}: 0,00 €
+{% else %}
+    Casilla {{ casilla_losses }} (saldo negativo): {{ summary.net_result | abs | fmt }} €
+    Casilla {{ casilla_gains }}: 0,00 €
+{% endif %}
+    Nota: las casillas anteriores corresponden al modelo IRPF 2023.
+    Verifica el número exacto en el modelo del ejercicio declarado.
+
+  TRAMOS DEL AHORRO (IRPF 2023/2024):
+    Hasta 6.000 €           →  19%
+    6.001 € – 50.000 €      →  21%
+    50.001 € – 200.000 €    →  23%
+    200.001 € – 300.000 €   →  27%
+    Más de 300.000 €        →  28%
+{% if summary.net_result > 0 %}
+  Cuota estimada*     :  {{ summary.estimated_tax | fmt }} €
+  (* Solo sobre G/P de transmisiones; no incluye otros rendimientos del ahorro)
+{% endif %}
+{% if summary.total_losses > 0 and summary.net_result < 0 %}
+
+  Las pérdidas no compensadas pueden compensarse con:
+    • Rendimientos del capital mobiliario del ahorro (hasta el 25%)
+    • G/P de transmisiones en los 4 ejercicios siguientes
+{% endif %}
+
+{{ "─" * 70 }}
+  Informe generado por renta — ejercicio {{ tax_year }}
+  Este informe es orientativo. Verifica los datos con la AEAT.
+{{ "─" * 70 }}

@@ -1,0 +1,61 @@
+# Example configuration file for the renta tool.
+# Copy this file to renta.yaml and edit the paths for your setup.
+# renta.yaml is gitignored — it will not be committed.
+#
+# Run with:
+#   renta [path/to/renta.yaml]
+#   python -m renta [path/to/renta.yaml]
+# If no path is given, renta.yaml in the current directory is used.
+
+# Base directory for resolving relative paths defined in this file.
+# Can be absolute or relative to the directory where this config file lives.
+# Default: "." (same directory as the config file).
+base_path: data
+
+# ---------------------------------------------------------------------------
+# Capital gains from ETFs and stocks.
+# Applies FIFO and wash-sale rule (2 months / 1 year).
+# ---------------------------------------------------------------------------
+etfs:
+  # Path to the XLSX exported from DeGiro: Buzón → Transacciones → Exportar → Excel.
+  # Relative paths are resolved against base_path.
+  input: input/degiro/Transactions.xlsx
+
+  # Tax year to report (e.g. 2024).
+  # Set to null (or remove the line) to generate reports for all years with sales.
+  year: null
+
+  # Directory where generated reports (.txt files) will be saved.
+  # Each file will be named "informe_acciones_<year>.txt".
+  # Relative paths are resolved against base_path.
+  output_dir: output
+
+# ---------------------------------------------------------------------------
+# Dividends (rendimientos del capital mobiliario, Art. 25.1.a LIRPF).
+# Generates report with IRPF boxes and double-taxation deduction (Art. 80).
+# ---------------------------------------------------------------------------
+dividends:
+  # Path to the XLSX exported from DeGiro: Buzón → Estado de cuenta → Exportar → Excel.
+  # Different file from ETFs (Account.xlsx vs Transactions.xlsx).
+  input: input/degiro/Account.xlsx
+
+  # Tax year to report (e.g. 2024).
+  # Set to null (or remove the line) to generate reports for all years with dividends.
+  year: null
+
+  # Directory where generated reports (.txt files) will be saved.
+  # Each file will be named "informe_dividendos_<year>.txt".
+  output_dir: output
+
+  # Manual FX rate overrides.
+  # Use when the automatic conversion (DeGiro or ECB) is not correct.
+  # Each entry requires: isin, date (YYYY-MM-DD), and rate (EUR/currency).
+  fx_overrides: []
+  # Example:
+  # fx_overrides:
+  #   - isin: US0378331005
+  #     date: 2024-05-17
+  #     rate: "1.0897"
+  #   - isin: US5949181045
+  #     date: 2024-03-14
+  #     rate: "1.0923"
