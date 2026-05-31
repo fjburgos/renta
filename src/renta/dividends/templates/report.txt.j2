@@ -1,0 +1,73 @@
+{{ "═" * 65 }}
+DIVIDENDOS — EJERCICIO {{ tax_year }}
+{{ "═" * 65 }}
+
+B1. Rendimientos del capital mobiliario — base imponible del ahorro
+{{ "─" * 65 }}
+  {{ "Fecha" | ljust(12) }} {{ "ISIN" | ljust(14) }} {{ "Valor" | ljust(24) }} {{ "Bruto EUR" | rjust(10) }} {{ "Retención EUR" | rjust(13) }}
+  {{ "─" * 12 }} {{ "─" * 14 }} {{ "─" * 24 }} {{ "─" * 10 }} {{ "─" * 13 }}
+{% for e in events %}
+{% set ticker = (e.ticker[:22] + "..") if e.ticker | length > 24 else e.ticker %}
+  {{ e.date }}  {{ e.isin | ljust(14) }} {{ ticker | ljust(24) }} {{ e.gross_amount | eur | rjust(10) }} {{ e.foreign_withholding | eur | rjust(13) }}{{ " ⚠IE" if e.irish_etf_note else "" }}
+{% endfor %}
+
+{{ "─" * 65 }}
+  Casilla 0029 — Ingresos íntegros:        {{ total_gross | eur | rjust(10) }}
+  Casilla 0031 — Gastos deducibles:         {{ "0,00" | rjust(10) }}
+  Casilla 0595 — Retenciones (DeGiro = 0):  {{ "0,00" | rjust(10) }}
+
+  ⚠ Los números de casilla pueden variar entre ejercicios. Verificar en el Modelo 100 del año.
+{% if country_entries %}
+
+{{ "─" * 65 }}
+I. Deducción por doble imposición internacional (Art. 80 LIRPF)
+{{ "─" * 65 }}
+  {{ "País" | ljust(6) }} {{ "Ingresos íntegros" | rjust(18) }} {{ "Impuesto extranjero" | rjust(20) }} {{ "Deducible" | rjust(10) }}
+  {{ "─" * 6 }} {{ "─" * 18 }} {{ "─" * 20 }} {{ "─" * 10 }}
+{% for c in country_entries %}
+  {{ c.country_code | ljust(6) }} {{ c.total_gross | eur | rjust(18) }} {{ c.total_withholding | eur | rjust(20) }} {{ c.total_deductible | eur | rjust(10) }}
+{% endfor %}
+
+  Casilla 0588 — Deducción DII: {{ total_deductible_foreign_tax | eur | rjust(10) }}
+  ⚠ Los números de casilla pueden variar entre ejercicios. Verificar en el Modelo 100 del año.
+{% endif %}
+{% if irish_isins %}
+
+{{ "─" * 65 }}
+⚠  NOTA: ETFs UCITS domiciliados en Irlanda (ISIN IE...)
+{{ "─" * 65 }}
+  Los dividendos de ETFs con ISIN IE se declaran íntegramente como rendimiento
+  del capital mobiliario con retención extranjera = 0 y sin deducción DII.
+  El WHT que el fondo paga internamente sobre dividendos de subyacente USA (15%)
+  se absorbe en el NAV/distribución y NO es recuperable por el inversor español.
+
+  ISINs afectados:
+{% for isin in irish_isins %}
+    • {{ isin }}
+{% endfor %}
+{% endif %}
+{% if fallback_events %}
+
+{{ "═" * 65 }}
+CONVERSIONES FX — MODO FALLBACK ({{ fallback_events | length }} evento{{ "s" if fallback_events | length != 1 else "" }})
+{{ "═" * 65 }}
+
+  Los siguientes dividendos no tenían en el extracto de cuenta las filas
+  de conversión automática que DeGiro genera normalmente:
+
+    Patrón esperado (día hábil siguiente al dividendo, ISIN vacío):
+    • "Retirada Cambio de Divisa": importe negativo en divisa original,
+       tipo de cambio en columna Tipo (pos. 6), FechaValor = Fecha del dividendo.
+    • "Ingreso Cambio de Divisa":  mismo (Fecha, Hora) que la Retirada,
+       importe positivo en EUR.
+
+  Causa más probable: el extracto no cubre el día posterior al último dividendo.
+  Exportar con rango +1 día puede hacer desaparecer esta sección.
+
+  {{ "Fecha" | ljust(12) }} {{ "ISIN" | ljust(14) }} {{ "Valor" | ljust(20) }} {{ "Divisa" | ljust(6) }} {{ "Bruto div." | rjust(10) }} {{ "FX" | rjust(8) }} {{ "Fuente" | ljust(9) }} {{ "Bruto EUR" | rjust(10) }}
+  {{ "─" * 12 }} {{ "─" * 14 }} {{ "─" * 20 }} {{ "─" * 6 }} {{ "─" * 10 }} {{ "─" * 8 }} {{ "─" * 9 }} {{ "─" * 10 }}
+{% for e in fallback_events %}
+  {{ e.date }}  {{ e.isin | ljust(14) }} {{ e.ticker | ljust(20) }} {{ e.original_currency | ljust(6) }} {{ e.gross_foreign | eur | rjust(10) }} {{ (e.fx_rate | string if e.fx_rate else "—") | rjust(8) }} {{ ("[" + (e.fx_source.value | upper) + "]") | ljust(9) }} {{ e.gross_eur | eur | rjust(10) }}
+{% endfor %}
+{{ "═" * 65 }}
+{% endif %}
