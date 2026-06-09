@@ -162,6 +162,68 @@ Navega a:
 
 ---
 
+## Uso — Cuentas remuneradas (Revolut Cuenta Flexible)
+
+La Cartera Flexible de Revolut (Fondos Monetarios Flexibles) tributa como **rendimiento del capital mobiliario** integrado en la base imponible del ahorro. Revolut no practica retención española.
+
+> Técnicamente son participaciones en un OICVM distribuidor (Fidelity Institutional Liquidity Fund PLC), no un depósito bancario. La clasificación exacta (Art. 25.1.a vs 25.2 LIRPF) y la deducibilidad de las comisiones de servicio tienen cierta ambigüedad — el informe generado explica ambas opciones.
+
+### 1. Obtén el extracto consolidado de Revolut
+
+En la app de Revolut:
+
+1. Pulsa tu foto de perfil (esquina superior izquierda)
+2. Ve a **Documentos y extractos**
+3. Selecciona **Extracto personalizado**
+4. Elige **Excel**, **Año fiscal** y el año correspondiente
+5. Pulsa **Generar** y guarda el fichero (se llama `consolidated-statement-v2_YYYY-MM-DD_YYYY-MM-DD_es_XXXXXX.csv`)
+
+Guarda el fichero en `data/input/revolut/` (está en `.gitignore`).
+
+### 2. Genera el informe
+
+Con un fichero de configuración YAML (`renta.yaml`):
+
+```yaml
+base_path: .
+cuentas:
+  input: data/input/revolut/consolidated-statement-v2_2025-01-01_2025-12-31_es_XXXXXX.csv
+  year: null       # null = detectar año automáticamente a partir del fichero
+  output_dir: output
+```
+
+Luego ejecuta:
+
+```bash
+python -m renta
+```
+
+El informe se guardará en `output/informe_cuentas_<año>.txt`.
+
+> La herramienta procesa automáticamente los fondos en EUR y GBP, convirtiendo los importes GBP al equivalente EUR que figura en el propio extracto de Revolut.
+
+### 3. Interpreta el informe e introduce los datos en Renta Web
+
+El informe muestra por cada fondo (EUR, GBP…):
+
+| Campo | Descripción |
+|---|---|
+| Interés bruto | Total generado por el fondo antes de comisiones |
+| Comisiones de servicio | Comisión de plataforma que Revolut descuenta |
+| Interés neto distribuido | Lo que efectivamente se abonó en tu cuenta |
+
+Y dos opciones de declaración con los importes calculados:
+- **Opción A** — declarar el bruto (posición conservadora si se trata como Art. 25.1.a)
+- **Opción B** — declarar el neto recibido (si se trata como Art. 25.2)
+
+Navega en Renta Web a:
+
+> **Apdo. D1 › Rendimientos del capital mobiliario**
+
+Introduce el importe según la opción elegida. Retenciones = 0 en ambos casos.
+
+---
+
 ## Desarrollo
 
 ```bash

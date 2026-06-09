@@ -59,3 +59,27 @@ dividends:
   #   - isin: US5949181045
   #     date: 2024-03-14
   #     rate: "1.0923"
+
+# ---------------------------------------------------------------------------
+# Revolut Flexible Account interest income (Cartera Flexible / Fondos
+# Monetarios Flexibles). Generates report with rendimientos del capital
+# mobiliario (Art. 25 LIRPF). Handles EUR and GBP funds automatically.
+# ---------------------------------------------------------------------------
+cuentas:
+  # List of Revolut consolidated statement CSV files, one per tax year.
+  # Export from Revolut: Profile → Documents & statements →
+  # Custom statement → Excel → Tax year → Generate.
+  # Files are named "consolidated-statement-v2_YYYY-MM-DD_YYYY-MM-DD_es_XXXXXX.csv".
+  # Relative paths are resolved against base_path.
+  input:
+    - input/revolut/consolidated-statement-v2_2024-01-01_2024-12-31_es_XXXXXX.csv
+    - input/revolut/consolidated-statement-v2_2025-01-01_2025-12-31_es_XXXXXX.csv
+
+  # Tax year to report (e.g. 2025).
+  # Set to null (or remove the line) to detect the year automatically from each file.
+  year: null
+
+  # Directory where the generated reports (.txt files) will be saved.
+  # Each file will be named "informe_cuentas_<year>.txt".
+  # Relative paths are resolved against base_path.
+  output_dir: output

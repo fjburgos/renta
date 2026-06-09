@@ -1,0 +1,79 @@
+{{ "═" * 65 }}
+FONDOS MONETARIOS FLEXIBLES — EJERCICIO {{ summary.tax_year }}
+{{ "═" * 65 }}
+
+D1. Rendimientos del capital mobiliario — base imponible del ahorro
+    Revolut Cartera Flexible (Fondos Monetarios Flexibles / OICVM)
+    Entidad: Revolut Securities Europe UAB (Lituania)
+    Retención española practicada: 0,00 €
+{{ "─" * 65 }}
+  {{ "Fondo" | ljust(28) }} {{ "ISIN" | ljust(14) }} {{ "Bruto EUR" | rjust(10) }} {{ "Comisiones" | rjust(11) }} {{ "Neto EUR" | rjust(9) }}
+  {{ "─" * 28 }} {{ "─" * 14 }} {{ "─" * 10 }} {{ "─" * 11 }} {{ "─" * 9 }}
+{% for a in summary.accounts %}
+{% set name_raw = a.fund_name if a.has_eur_equivalent else a.fund_name + " (*)" %}
+{% set name = (name_raw[:26] + "..") if name_raw | length > 28 else name_raw %}
+{% if a.has_eur_equivalent %}
+{% set net = a.gross_eur - a.fees_eur %}
+  {{ name | ljust(28) }} {{ a.isin | ljust(14) }} {{ a.gross_eur | eur | rjust(10) }} {{ a.fees_eur | eur | rjust(11) }} {{ net | eur | rjust(9) }}
+{% if a.currency != "EUR" %}
+    (moneda original: {{ a.currency }} — bruto {{ a.gross_native | fmt }} {{ a.currency }}, comisiones {{ a.fees_native | fmt }} {{ a.currency }})
+{% endif %}
+{% else %}
+  {{ name | ljust(28) }} {{ a.isin | ljust(14) }} {{ "(*)" | rjust(10) }} {{ "(*)" | rjust(11) }} {{ "(*)" | rjust(9) }}
+    ({{ a.currency }}: bruto {{ a.gross_native | fmt }}, comisiones {{ a.fees_native | fmt }}, neto {{ (a.gross_native - a.fees_native) | fmt }})
+{% endif %}
+{% endfor %}
+{{ "─" * 65 }}
+  TOTAL interés bruto:                          {{ summary.total_gross_eur | eur | rjust(10) }}
+  TOTAL comisiones de servicio (Revolut):  -    {{ summary.total_fees_eur | eur | rjust(10) }}
+  TOTAL interés neto distribuido:               {{ summary.total_net_eur | eur | rjust(10) }}
+  Impuestos retenidos:                          {{ summary.total_tax_withheld_eur | eur | rjust(10) }}
+{% set no_eur_funds = summary.accounts | rejectattr("has_eur_equivalent") | list %}
+{% if no_eur_funds %}
+
+  ⚠ TOTALES INCOMPLETOS: fondos marcados (*) no incluyen equivalente EUR
+    (extracto formato v1). Suma la conversión manual antes de declarar.
+
+{{ "─" * 65 }}
+CONVERSIÓN MANUAL REQUERIDA (*)
+{{ "─" * 65 }}
+  El extracto de Revolut en formato v1 no incluye equivalente EUR para fondos
+  en divisa extranjera. Convierte usando el tipo de cambio BCE en la fecha de
+  devengo (o media del ejercicio): https://www.ecb.europa.eu/stats/exchange/
+{% for a in no_eur_funds %}
+{% set net_native = a.gross_native - a.fees_native %}
+
+  Fondo: {{ a.fund_name }} — ISIN: {{ a.isin }}
+    Bruto ({{ a.currency }}):    {{ a.gross_native | fmt }} {{ a.currency }}
+    Comisiones:         {{ a.fees_native | fmt }} {{ a.currency }}
+    Neto ({{ a.currency }}):     {{ net_native | fmt }} {{ a.currency }}
+    Retenciones:        {{ a.tax_withheld_native | fmt }} {{ a.currency }}
+{% endfor %}
+{% endif %}
+
+{{ "─" * 65 }}
+CÓMO DECLARAR EN RENTA WEB
+{{ "─" * 65 }}
+  Apdo. D1 › Rendimientos del capital mobiliario
+  Sección: "Dividendos y demás rendimientos por participación en fondos propios"
+            O bien "Intereses y otros rendimientos obtenidos por cesión a terceros
+            de capitales propios" (Art. 25.2 LIRPF), según criterio del asesor.
+
+  Opción A — Declarar el interés bruto (posición conservadora):
+    Importe íntegro:    {{ summary.total_gross_eur | eur | rjust(10) }}
+    Gastos deducibles:  {{ "0,00 €" | rjust(10) }}    (comisiones NO deducibles si Art. 25.1.a)
+    Retenciones:        {{ "0,00 €" | rjust(10) }}
+
+  Opción B — Declarar el interés neto (lo efectivamente recibido):
+    Importe íntegro:    {{ summary.total_net_eur | eur | rjust(10) }}
+    Gastos deducibles:  {{ "0,00 €" | rjust(10) }}
+    Retenciones:        {{ "0,00 €" | rjust(10) }}
+
+  ⚠ La Cartera Flexible de Revolut es técnicamente un OICVM distribuidor (Fidelity
+    Institutional Liquidity Fund PLC). La DGT no ha emitido resolución específica
+    sobre su tratamiento en IRPF. Consulta con un asesor fiscal para confirmar
+    la clasificación (Art. 25.1.a vs Art. 25.2 LIRPF) y la deducibilidad de las
+    comisiones de servicio.
+
+  ⚠ Los números de casilla pueden variar entre ejercicios.
+    Verificar en el Modelo 100 del año {{ summary.tax_year }}.

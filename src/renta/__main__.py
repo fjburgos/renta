@@ -66,6 +66,9 @@ def main() -> None:
     if "dividends" in config:
         _run_dividends(config["dividends"], base_path)
         ran_any = True
+    if "cuentas" in config:
+        _run_cuentas(config["cuentas"], base_path)
+        ran_any = True
 
     if not ran_any:
         print("Error: no se encontró ninguna sección de cálculo en la configuración.", file=sys.stderr)
@@ -129,6 +132,45 @@ def _run_dividends(cfg: dict[str, Any], base_path: Path) -> None:
             out = output_dir / f"informe_dividendos_{yr}.txt"
             out.write_text(report, encoding="utf-8")
             print(f"Informe dividendos {yr} guardado en: {out}")
+
+
+def _run_cuentas(cfg: dict[str, Any], base_path: Path) -> None:
+    from renta.cuentas import calculate, calculate_all_years
+
+    # Accept 'input' as a single string or a YAML list, and 'inputs' as a list.
+    raw_input = cfg.get("input")
+    raw_list: list[str]
+    if isinstance(raw_input, list):
+        raw_list = raw_input
+    elif raw_input is not None:
+        raw_list = [str(raw_input)]
+    else:
+        raise ValueError("Se requiere 'input' en la sección 'cuentas' de la configuración.")
+
+    output_dir = _resolve(cfg.get("output_dir"), base_path, "data/output")
+    year: int | None = cfg.get("year")
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    for raw in raw_list:
+        input_path = _resolve(raw, base_path, "")
+        if not input_path.exists():
+            print(f"Error: fichero no encontrado: {input_path}", file=sys.stderr)
+            sys.exit(1)
+
+        if year is not None:
+            report = calculate(input_path, year)
+            out = output_dir / f"informe_cuentas_{year}_{input_path.stem}.txt"
+            out.write_text(report, encoding="utf-8")
+            print(f"Informe cuentas guardado en: {out}")
+        else:
+            reports = calculate_all_years(input_path)
+            if not reports:
+                print(f"No se encontraron datos de cuentas en: {input_path.name}")
+                continue
+            for yr, report in reports.items():
+                out = output_dir / f"informe_cuentas_{yr}_{input_path.stem}.txt"
+                out.write_text(report, encoding="utf-8")
+                print(f"Informe cuentas {yr} guardado en: {out}")
 
 
 def _parse_fx_overrides(entries: list[Any]) -> dict[tuple[str, datetime.date], Decimal]:
