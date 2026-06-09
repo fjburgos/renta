@@ -8,6 +8,7 @@ Public API:
     calculate(path, tax_year)     → plain-text IRPF report
     calculate_all_years(path)     → dict of year → report
     build_summary(path, tax_year) → CuentasSummary for programmatic access
+    build_all_summaries(path)     → dict of year → CuentasSummary for programmatic access
 """
 
 from __future__ import annotations
@@ -24,6 +25,13 @@ def build_summary(path: Path, tax_year: int) -> CuentasSummary:
     """Parse Revolut CSV and return a CuentasSummary for the given fiscal year."""
     accounts, _ = parse_revolut_csv(path)
     return _calc_summary(accounts, tax_year)
+
+
+def build_all_summaries(path: Path) -> dict[int, CuentasSummary]:
+    """Parse once; return a CuentasSummary for the fiscal year found in the file."""
+    accounts, year = parse_revolut_csv(path)
+    summary = _calc_summary(accounts, year)
+    return {year: summary}
 
 
 def calculate(path: Path, tax_year: int) -> str:

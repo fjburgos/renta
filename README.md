@@ -224,6 +224,69 @@ Introduce el importe según la opción elegida. Retenciones = 0 en ambos casos.
 
 ---
 
+## Compensación de pérdidas entre ejercicios
+
+### La base imponible del ahorro
+
+Todos los rendimientos de inversiones tributan juntos en la **base imponible del ahorro**. La ley los divide en dos grupos (llamados "cestas") que tienen reglas de compensación propias:
+
+| Cesta | Qué incluye | Fuente en esta herramienta |
+|---|---|---|
+| **Cesta A** — Ganancias y pérdidas patrimoniales | Beneficios y pérdidas de vender ETFs, acciones u otros activos | Informe de acciones/ETFs |
+| **Cesta B** — Rendimientos del capital mobiliario | Dividendos, intereses de cuentas, cupones de bonos | Informes de dividendos y cuentas |
+
+### Reglas de compensación (Art. 49 LIRPF)
+
+**1. Dentro de cada cesta** se compensan ganancias y pérdidas del mismo tipo. Si vendes un ETF con ganancia de 500 € y otro con pérdida de 200 €, el resultado neto de cesta A es +300 €.
+
+**2. Compensación cruzada** (hasta el 25 %): si tras la compensación interna una cesta queda negativa, puede reducir el saldo positivo de la otra cesta, pero solo hasta el **25 % de ese saldo positivo**.
+
+> Ejemplo: cesta A = −100 €, cesta B (dividendos) = +80 €. Puedes aplicar hasta 25 % de 80 € = 20 €. Resultado: cesta A queda en −80 € (a arrastrar), cesta B queda en +60 € (tributa).
+
+**3. Arrastre hasta 4 años**: lo que no se puede compensar en el año actual se arrastra a los cuatro ejercicios siguientes. Si en 2022 tienes pérdidas no compensadas, puedes usarlas en 2023, 2024, 2025 y 2026. En 2027 expiran.
+
+### Cómo lo calcula la herramienta
+
+La herramienta procesa **todo el historial disponible** en los ficheros de entrada (DeGiro desde 2021, Revolut desde el año más antiguo que tengas). Para cada ejercicio calcula automáticamente:
+
+1. El saldo neto de cesta A (ventas de acciones/ETFs).
+2. El saldo neto de cesta B (dividendos + intereses de cuentas).
+3. Qué pérdidas de ejercicios anteriores se pueden aplicar este año (FIFO: primero las más antiguas).
+4. La compensación cruzada hasta el 25 %.
+5. Qué queda pendiente de arrastrar al ejercicio siguiente.
+
+Genera un fichero `informe_compensacion_<año>.txt` por cada ejercicio con datos, mostrando el desglose completo.
+
+### Interpreta el informe de compensación
+
+```
+CESTA A — Ganancias y pérdidas patrimoniales
+  Resultado del ejercicio:            -148,30 €
+  Compensación cruzada (A → B, ≤25%): -6,84 €    ← reduce el dividendo declarado
+  Saldo negativo cesta A (casilla 0390): 141,46 €  ← a arrastrar
+
+CESTA B — Rendimientos del capital mobiliario
+  Rendimientos brutos del ejercicio:  +27,35 €
+  Compensación cruzada (A → B, ≤25%): -6,84 €
+  Saldo final cesta B:                +20,51 €    ← lo que tributa
+
+PÉRDIDAS PENDIENTES PARA EJERCICIOS FUTUROS
+  · Cesta A — origen 2022: 141,46 €  (expira en la declaración 2026)
+```
+
+**Casillas IRPF relevantes:**
+
+| Casilla | Descripción |
+|---|---|
+| 0380 | Saldo positivo de G/P patrimoniales (cesta A con beneficio) |
+| 0390 | Saldo negativo de G/P patrimoniales (pérdida a arrastrar) |
+| 0435 | Saldo positivo de rendimientos del capital mobiliario (cesta B) |
+| 0460 / 0465 | Compensación de pérdidas de ejercicios anteriores de cesta A y B |
+
+> Los números de casilla pueden variar entre ejercicios. Verifica siempre en el Modelo 100 del año que declares.
+
+---
+
 ## Desarrollo
 
 ```bash

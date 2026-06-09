@@ -60,23 +60,32 @@ def main() -> None:
     base_path = base_path.resolve()
 
     ran_any = False
+    etf_summaries: dict[int, Any] = {}
+    dividend_summaries: dict[int, Any] = {}
+    cuentas_summaries: dict[int, Any] = {}
+    output_dir: Path | None = None
+
     if "etfs" in config:
-        _run_etfs(config["etfs"], base_path)
+        etf_summaries, output_dir = _run_etfs(config["etfs"], base_path)
         ran_any = True
     if "dividends" in config:
-        _run_dividends(config["dividends"], base_path)
+        dividend_summaries, output_dir = _run_dividends(config["dividends"], base_path)
         ran_any = True
     if "cuentas" in config:
-        _run_cuentas(config["cuentas"], base_path)
+        cuentas_summaries, output_dir = _run_cuentas(config["cuentas"], base_path)
         ran_any = True
 
     if not ran_any:
         print("Error: no se encontró ninguna sección de cálculo en la configuración.", file=sys.stderr)
         sys.exit(1)
 
+    if output_dir is not None and (etf_summaries or dividend_summaries or cuentas_summaries):
+        _run_compensation(etf_summaries, dividend_summaries, cuentas_summaries, output_dir)
 
-def _run_etfs(cfg: dict[str, Any], base_path: Path) -> None:
-    from renta.etfs import calculate, calculate_all_years
+
+def _run_etfs(cfg: dict[str, Any], base_path: Path) -> tuple[dict[int, Any], Path]:
+    from renta.etfs import build_all_summaries, calculate, calculate_all_years
+    from renta.etfs.report import TaxSummary
 
     input_path = _resolve(cfg.get("input"), base_path, "data/input/degiro/Transactions.xlsx")
     output_dir = _resolve(cfg.get("output_dir"), base_path, "data/output")
@@ -97,15 +106,19 @@ def _run_etfs(cfg: dict[str, Any], base_path: Path) -> None:
         reports = calculate_all_years(input_path)
         if not reports:
             print("No se encontraron ventas en el fichero.")
-            return
+            return {}, output_dir
         for yr, report in reports.items():
             out = output_dir / f"informe_acciones_{yr}.txt"
             out.write_text(report, encoding="utf-8")
             print(f"Informe ETFs {yr} guardado en: {out}")
 
+    all_summaries: dict[int, TaxSummary] = build_all_summaries(input_path)
+    return all_summaries, output_dir
 
-def _run_dividends(cfg: dict[str, Any], base_path: Path) -> None:
-    from renta.dividends import calculate, calculate_all_years
+
+def _run_dividends(cfg: dict[str, Any], base_path: Path) -> tuple[dict[int, Any], Path]:
+    from renta.dividends import build_all_summaries, calculate, calculate_all_years
+    from renta.dividends.models import DividendSummary
 
     input_path = _resolve(cfg.get("input"), base_path, "data/input/degiro/Account.xlsx")
     output_dir = _resolve(cfg.get("output_dir"), base_path, "data/output")
@@ -127,17 +140,22 @@ def _run_dividends(cfg: dict[str, Any], base_path: Path) -> None:
         reports = calculate_all_years(input_path, fx_overrides=fx_overrides or None)
         if not reports:
             print("No se encontraron dividendos en el fichero.")
-            return
+            return {}, output_dir
         for yr, report in reports.items():
             out = output_dir / f"informe_dividendos_{yr}.txt"
             out.write_text(report, encoding="utf-8")
             print(f"Informe dividendos {yr} guardado en: {out}")
 
+    all_summaries: dict[int, DividendSummary] = build_all_summaries(
+        input_path, fx_overrides=fx_overrides or None
+    )
+    return all_summaries, output_dir
 
-def _run_cuentas(cfg: dict[str, Any], base_path: Path) -> None:
-    from renta.cuentas import calculate, calculate_all_years
 
-    # Accept 'input' as a single string or a YAML list, and 'inputs' as a list.
+def _run_cuentas(cfg: dict[str, Any], base_path: Path) -> tuple[dict[int, Any], Path]:
+    from renta.cuentas import build_all_summaries, calculate, calculate_all_years
+    from renta.cuentas.models import CuentasSummary
+
     raw_input = cfg.get("input")
     raw_list: list[str]
     if isinstance(raw_input, list):
@@ -150,6 +168,9 @@ def _run_cuentas(cfg: dict[str, Any], base_path: Path) -> None:
     output_dir = _resolve(cfg.get("output_dir"), base_path, "data/output")
     year: int | None = cfg.get("year")
     output_dir.mkdir(exist_ok=True, parents=True)
+
+    # Aggregate cuentas summaries across all input files, merging by year.
+    merged_summaries: dict[int, CuentasSummary] = {}
 
     for raw in raw_list:
         input_path = _resolve(raw, base_path, "")
@@ -171,6 +192,63 @@ def _run_cuentas(cfg: dict[str, Any], base_path: Path) -> None:
                 out = output_dir / f"informe_cuentas_{yr}_{input_path.stem}.txt"
                 out.write_text(report, encoding="utf-8")
                 print(f"Informe cuentas {yr} guardado en: {out}")
+
+        file_summaries = build_all_summaries(input_path)
+        for yr, s in file_summaries.items():
+            if yr in merged_summaries:
+                existing = merged_summaries[yr]
+                merged_summaries[yr] = CuentasSummary(
+                    tax_year=yr,
+                    accounts=existing.accounts + s.accounts,
+                    total_gross_eur=existing.total_gross_eur + s.total_gross_eur,
+                    total_fees_eur=existing.total_fees_eur + s.total_fees_eur,
+                    total_net_eur=existing.total_net_eur + s.total_net_eur,
+                    total_tax_withheld_eur=existing.total_tax_withheld_eur + s.total_tax_withheld_eur,
+                )
+            else:
+                merged_summaries[yr] = s
+
+    return merged_summaries, output_dir
+
+
+def _run_compensation(
+    etf_summaries: dict[int, Any],
+    dividend_summaries: dict[int, Any],
+    cuentas_summaries: dict[int, Any],
+    output_dir: Path,
+) -> None:
+    from decimal import Decimal
+
+    from renta.compensation import build_report, calculate_compensation
+    from renta.compensation.models import YearlyBaseSummary
+
+    all_years = sorted(
+        etf_summaries.keys() | dividend_summaries.keys() | cuentas_summaries.keys()
+    )
+    if not all_years:
+        return
+
+    _ZERO = Decimal("0")
+
+    yearly_summaries: list[YearlyBaseSummary] = []
+    for yr in all_years:
+        etf = etf_summaries.get(yr)
+        div = dividend_summaries.get(yr)
+        cuentas = cuentas_summaries.get(yr)
+
+        net_a = etf.net_result if etf is not None else _ZERO
+        net_b = (div.total_gross if div is not None else _ZERO) + (
+            cuentas.total_gross_eur if cuentas is not None else _ZERO
+        )
+        yearly_summaries.append(YearlyBaseSummary(year=yr, net_capital_gains=net_a, net_capital_income=net_b))
+
+    result = calculate_compensation(yearly_summaries)
+
+    for yr in all_years:
+        report = build_report(result, yr)
+        out = output_dir / f"informe_compensacion_{yr}.txt"
+        out.write_text(report, encoding="utf-8")
+        print(f"Informe compensación {yr} guardado en: {out}")
 
 
 def _parse_fx_overrides(entries: list[Any]) -> dict[tuple[str, datetime.date], Decimal]:
