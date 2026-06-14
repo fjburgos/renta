@@ -9,6 +9,11 @@ Este directorio contiene normativa, manuales y resoluciones relevantes para el c
   - Art. 25: Rendimientos del capital mobiliario
 - **RD 439/2007** — Reglamento del IRPF
 
+## Deducciones autonómicas CV
+
+- **[deducciones_autonomicas_cv_2025.md](deducciones_autonomicas_cv_2025.md)** — detalle completo de todas las deducciones autonómicas de la Comunitat Valenciana para IRPF 2025: gastos de salud, deporte, formación musical, abonos culturales, guardería y material escolar. Incluye porcentajes, límites de renta, y guía sobre justificantes.
+- **[gastos_deducibles_2025_template.xlsx](gastos_deducibles_2025_template.xlsx)** — plantilla Excel para registrar los gastos deducibles del ejercicio 2025. Ver spec en [docs/spec/gastos_deducibles.md](../spec/gastos_deducibles.md).
+
 ## Fuentes de referencia
 
 - [Manual IRPF AEAT](https://www.agenciatributaria.es) — manual práctico publicado cada ejercicio

@@ -1,0 +1,36 @@
+{{ "═" * 62 }}
+DEDUCCIONES AUTONÓMICAS CV — IRPF {{ year }}
+Fichero: {{ source_name }}
+{{ "═" * 62 }}
+
+Declaración: {{ config.declaration_type.value }}  |  Base liquidable: {{ config.base_total | eur }}  |  Edad: {{ config.age }}
+{% if config.disability_pct > 0 %}
+Discapacidad: {{ config.disability_pct }}%
+{% endif %}
+
+{% if not active %}
+No se encontraron gastos deducibles.
+{% else %}
+{{ "CATEGORÍA" | ljust(44) }} {{ "GASTADO" | rjust(8) }}  {{ "DEDUCIBLE" | rjust(9) }}
+{{ "─" * 62 }}
+{% for r in active %}
+{{ r.description | ljust(44) }} {{ r.total_expenses | eur | rjust(8) }}  {{ r.deduction_final | eur | rjust(9) }}
+{% endfor %}
+{{ "─" * 62 }}
+{{ "TOTAL DEDUCIBLE" | ljust(44) }} {{ "" | rjust(8) }}  {{ total_deducible | eur | rjust(9) }}
+{{ "═" * 62 }}
+{% if all_warnings %}
+
+AVISOS:
+{% for w in all_warnings %}
+  ⚠  {{ w }}
+{% endfor %}
+{% endif %}
+
+A INTRODUCIR EN RENTA WEB — importes brutos por categoría:
+  (Renta Web aplica automáticamente porcentajes y límites de renta)
+{{ "─" * 62 }}
+{% for r in active %}
+  {{ r.description }}: {{ r.total_expenses | eur }}
+{% endfor %}
+{% endif %}

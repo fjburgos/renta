@@ -224,6 +224,66 @@ Introduce el importe según la opción elegida. Retenciones = 0 en ambos casos.
 
 ---
 
+## Uso — Deducciones autonómicas Comunidad Valenciana (gastos personales)
+
+El módulo `gastos` calcula las deducciones autonómicas de la Comunitat Valenciana: salud, deporte, formación musical, abonos culturales, guardería y material escolar.
+
+> Ver guía completa de deducciones y uso de la plantilla: [docs/referencia/deducciones_autonomicas_cv_2025.md](docs/referencia/deducciones_autonomicas_cv_2025.md)
+
+### 1. Genera la plantilla Excel
+
+```bash
+python -c "from renta.gastos.template import create_template; from pathlib import Path; create_template(Path('gastos_yo_2025.xlsx'))"
+```
+
+Guarda el fichero generado en `data/input/gastos/` (está en `.gitignore`).
+Si sois dos contribuyentes que declaran por separado, genera una plantilla por cada uno:
+
+```bash
+python -c "from renta.gastos.template import create_template; from pathlib import Path; create_template(Path('data/input/gastos/gastos_yo_2025.xlsx')); create_template(Path('data/input/gastos/gastos_conyuge_2025.xlsx'))"
+```
+
+### 2. Rellena los gastos
+
+Abre cada fichero Excel y rellena la hoja **`gastos`** con los gastos del ejercicio. Cada persona rellena **su propio fichero** con los gastos que ella pagó. La hoja `instrucciones` dentro del Excel explica cada columna.
+
+### 3. Genera los informes
+
+Añade una sección `gastos` a tu `renta.yaml`:
+
+```yaml
+base_path: .
+
+gastos:
+  year: 2025
+  output_dir: data/output
+  input:
+    - data/input/gastos/gastos_yo_2025.xlsx
+    - data/input/gastos/gastos_conyuge_2025.xlsx
+```
+
+Ejecuta:
+
+```bash
+python -m renta
+```
+
+Se generará un informe por contribuyente en `data/output/`:
+- `informe_gastos_2025_gastos_yo.txt`
+- `informe_gastos_2025_gastos_conyuge.txt`
+
+### 4. Introduce los datos en Renta Web
+
+El informe muestra los **importes brutos por categoría** para introducir en Renta Web. La AEAT aplica automáticamente el porcentaje de deducción, el límite por categoría y el límite de renta — no necesitas calcularlos tú.
+
+Navega en Renta Web a:
+
+> **Apdo. D7 › Deducciones autonómicas → Comunitat Valenciana**
+
+> La tool calcula la deducción esperada, pero está pendiente de validar  (no bloqueante, ya que se calcula igualmente por la aplicación de la AEAT).
+
+---
+
 ## Compensación de pérdidas entre ejercicios
 
 ### La base imponible del ahorro

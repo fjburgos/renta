@@ -74,6 +74,9 @@ def main() -> None:
     if "cuentas" in config:
         cuentas_summaries, output_dir = _run_cuentas(config["cuentas"], base_path)
         ran_any = True
+    if "gastos" in config:
+        _run_gastos(config["gastos"], base_path)
+        ran_any = True
 
     if not ran_any:
         print("Error: no se encontró ninguna sección de cálculo en la configuración.", file=sys.stderr)
@@ -249,6 +252,38 @@ def _run_compensation(
         out = output_dir / f"informe_compensacion_{yr}.txt"
         out.write_text(report, encoding="utf-8")
         print(f"Informe compensación {yr} guardado en: {out}")
+
+
+def _run_gastos(cfg: dict[str, Any], base_path: Path) -> None:
+    from renta.gastos import build_report, calculate_deductions, read_gastos_excel
+
+    raw_input = cfg.get("input")
+    if raw_input is None:
+        print("Error: se requiere 'input' en la sección 'gastos' de la configuración.", file=sys.stderr)
+        sys.exit(1)
+    raw_list: list[str] = raw_input if isinstance(raw_input, list) else [str(raw_input)]
+
+    year: int | None = cfg.get("year")
+    if year is None:
+        print("Error: se requiere 'year' en la sección 'gastos' de la configuración.", file=sys.stderr)
+        sys.exit(1)
+
+    output_dir = _resolve(cfg.get("output_dir"), base_path, "data/output")
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    for raw in raw_list:
+        input_path = _resolve(raw, base_path, "")
+        if not input_path.exists():
+            print(f"Error: fichero no encontrado: {input_path}", file=sys.stderr)
+            sys.exit(1)
+
+        contributor_config, expenses = read_gastos_excel(input_path)
+        results = calculate_deductions(expenses, contributor_config)
+        report = build_report(input_path, contributor_config, results, year)
+
+        out = output_dir / f"informe_gastos_{year}_{input_path.stem}.txt"
+        out.write_text(report, encoding="utf-8")
+        print(f"Informe gastos guardado en: {out}")
 
 
 def _parse_fx_overrides(entries: list[Any]) -> dict[tuple[str, datetime.date], Decimal]:

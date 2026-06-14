@@ -6,6 +6,9 @@ jinja2
 openpyxl
 pyyaml
 
+# type stubs
+types-openpyxl
+
 # dev requirements
 pip-tools
 pytest

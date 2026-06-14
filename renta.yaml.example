@@ -83,3 +83,34 @@ cuentas:
   # Each file will be named "informe_cuentas_<year>.txt".
   # Relative paths are resolved against base_path.
   output_dir: output
+
+# ---------------------------------------------------------------------------
+# Deducciones autonómicas CV (gastos personales deducibles en IRPF).
+# Soporta salud, deporte, formación musical, abonos culturales, guardería
+# y material escolar (Ley 13/1997, Comunitat Valenciana).
+#
+# Genera un informe por contribuyente con el importe bruto a introducir
+# en Renta Web (la AEAT aplica porcentajes y límites automáticamente).
+#
+# Si declaráis por separado, usad un fichero Excel por contribuyente.
+# Cada uno incluye solo los gastos que él/ella pagó.
+# Los gastos se imputan al año en que se pagaron (criterio de caja),
+# independientemente del periodo que cubra el servicio.
+#
+# Ver: docs/referencia/deducciones_autonomicas_cv_2025.md
+# ---------------------------------------------------------------------------
+gastos:
+  # Tax year to report. Required.
+  year: 2025
+
+  # One Excel file per contributor. Each generates its own report.
+  # Generate the template with:
+  #   python -c "from renta.gastos.template import create_template; from pathlib import Path; create_template(Path('data/input/gastos/gastos_yo_2025.xlsx'))"
+  # Relative paths are resolved against base_path.
+  input:
+    - input/gastos/gastos_yo_2025.xlsx
+    - input/gastos/gastos_conyuge_2025.xlsx
+
+  # Directory where generated reports (.txt files) will be saved.
+  # Each file will be named "informe_gastos_<year>_<filename>.txt".
+  output_dir: output

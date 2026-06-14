@@ -6,6 +6,7 @@ Este directorio contiene las especificaciones funcionales y técnicas del proyec
 
 | Fichero | Descripción |
 |---|---|
+| [gastos_deducibles.md](gastos_deducibles.md) | Módulo `renta.gastos`: deducciones autonómicas CV via Excel |
 | *(pendiente)* | Especificación de cálculo FIFO para ETFs/acciones |
 | *(pendiente)* | Especificación de la regla antiaplicación (2 meses) |
 | *(pendiente)* | Especificación de rendimientos del capital mobiliario |
