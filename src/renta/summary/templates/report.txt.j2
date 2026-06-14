@@ -1,0 +1,66 @@
+{{ "═" * 68 }}
+  IRPF {{ tax_year }} — RESUMEN DE CASILLAS
+{{ "═" * 68 }}
+  Generado: {{ today }}    Ejercicio: {{ tax_year }}
+
+  Régimen de gananciales: junto a cada importe se indica el 50%
+  correspondiente a cada cónyuge.
+  Gastos deducibles: se aplican íntegros al cónyuge que efectuó el pago.
+
+{% if has_etfs or has_compensation %}
+{{ "─" * 68 }}
+  CESTA A — Ganancias y pérdidas patrimoniales (Art. 33, 46.b.1 LIRPF)
+{{ "─" * 68 }}
+{% if has_etfs %}
+  Resultado bruto ETFs/acciones : {{ gross_basket_a | eur | rjust(10) }}   (50 %: {{ gross_basket_a | half | eur | rjust(10) }})
+{% endif %}
+{% if has_compensation %}
+
+  Tras compensación:
+    Casilla 0380 (ganancias netas): {{ casilla_0380 | eur | rjust(10) }}   (50 %: {{ casilla_0380 | half | eur | rjust(10) }})
+    Casilla 0390 (pérdidas netas) : {{ casilla_0390 | eur | rjust(10) }}   (50 %: {{ casilla_0390 | half | eur | rjust(10) }})
+{% endif %}
+
+{% endif %}
+{% if has_dividends or has_cuentas %}
+{{ "─" * 68 }}
+  CESTA B — Rendimientos del capital mobiliario (Art. 25, 46.b.2 LIRPF)
+{{ "─" * 68 }}
+{% if has_dividends %}
+
+  B1. Dividendos (Art. 25.1.a LIRPF — DeGiro)
+    Casilla 0029 (ingresos íntegros) : {{ div_gross | eur | rjust(10) }}   (50 %: {{ div_gross | half | eur | rjust(10) }})
+    Casilla 0031 (gastos deducibles) : {{ "0,00 €" | rjust(10) }}
+    Casilla 0595 (retenciones)       : {{ "0,00 €" | rjust(10) }}
+{% if div_dii > 0 %}
+    Casilla 0588 (deducción DII)     : {{ div_dii | eur | rjust(10) }}   (50 %: {{ div_dii | half | eur | rjust(10) }})
+{% endif %}
+{% endif %}
+{% if has_cuentas %}
+
+  D1. Cartera Flexible Revolut (Art. 25.2 LIRPF)
+    Importe íntegro                  : {{ cuentas | eur | rjust(10) }}   (50 %: {{ cuentas | half | eur | rjust(10) }})
+    Gastos deducibles                : {{ "0,00 €" | rjust(10) }}
+    Retenciones                      : {{ "0,00 €" | rjust(10) }}
+{% endif %}
+{% if has_compensation %}
+
+  Cesta B neta tras compensación     : {{ net_basket_b | eur | rjust(10) }}   (50 %: {{ net_basket_b | half | eur | rjust(10) }})
+{% endif %}
+
+{% endif %}
+{% if gastos %}
+{{ "─" * 68 }}
+  DEDUCCIONES AUTONÓMICAS — Comunitat Valenciana
+  (importe íntegro al cónyuge pagador; no se divide por gananciales)
+{{ "─" * 68 }}
+{% for g in gastos %}
+  {{ g.source_name | ljust(38) }} {{ g.total_deducible | eur | rjust(10) }}   (íntegro)
+{% endfor %}
+
+{% endif %}
+{{ "─" * 68 }}
+  ⚠ Los números de casilla pueden variar entre ejercicios.
+    Verificar en el Modelo 100 del ejercicio {{ tax_year }}.
+  Informe generado por renta — orientativo, verificar con la AEAT.
+{{ "─" * 68 }}
